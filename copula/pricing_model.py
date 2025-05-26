@@ -24,7 +24,7 @@ def geometric_brownian_motion(S0, mu, sigma, N, T, M):
     S = S0 * np.exp((mu - 0.5 * sigma**2) * t[:, None] + sigma * W)
     return t, S
 
-
+#%%
 class EuropeanOptions:
     def __init__(
         self,
@@ -45,6 +45,7 @@ class EuropeanOptions:
             strike_price: Strike price
             maturity: Time to maturity
             sigma: Volatility
+            mu: Drift
             r: Risk-free rate
             dividend: Dividend yield
             N: Number of time steps
@@ -55,6 +56,7 @@ class EuropeanOptions:
         self.T = maturity
         self.sigma = sigma
         self.r = r
+        self.mu = mu
         self.q = dividend
         self.N = N
         self.M = M
@@ -69,14 +71,14 @@ class EuropeanOptions:
         return d1, d2
 
     def price_call(self):
-        """Black-Scholes call price."""
+        """Black-Scholes call price at time 0."""
         d1, d2 = self._d1_d2(self.S0, self.T)
         return self.S0 * np.exp(-self.q * self.T) * ss.norm.cdf(d1) - self.K * np.exp(
             -self.r * self.T
         ) * ss.norm.cdf(d2)
 
     def price_put(self):
-        """Black-Scholes put price."""
+        """Black-Scholes put price at time 0."""
         d1, d2 = self._d1_d2(self.S0, self.T)
         return self.K * np.exp(-self.r * self.T) * ss.norm.cdf(-d2) - self.S0 * np.exp(
             -self.q * self.T
@@ -97,7 +99,7 @@ class EuropeanOptions:
             return (self.price_call() if option_type == "call" else self.price_put()) - market_price
 
         try:
-            return so.newton(f, 0.2, maxiter=50)
+            return so.newton(f, 0.2)
         except RuntimeError:
             return np.nan
 
@@ -154,7 +156,7 @@ class EuropeanOptions:
 
     def delta_hedging(self, option_type="call"):
         """Perform delta hedging simulation.
-
+            optimisation : Girsanov theorem to get the risk neutral probability  
         Args:
             option_type: Type of option ('call' or 'put')
 
@@ -194,6 +196,21 @@ class EuropeanOptions:
 
         return pnl
 
+    def generate_paths_girsanov(self):
+        """Generate paths using Girsanov theorem for risk-neutral measure."""
+        dt = self.T / self.N
+        dW = np.random.normal(0, np.sqrt(dt), (self.N - 1, self.M))
+        
+        theta = (self.mu - self.r) / self.sigma  
+        dW_tilde = dW + theta * np.sqrt(dt)  
+        
+        W = np.cumsum(dW_tilde, axis=0)
+        W = np.vstack([np.zeros(self.M), W])
+        
+        S = self.S0 * np.exp((self.r - 0.5 * self.sigma**2) * np.arange(self.N)[:, None] * dt + 
+                            self.sigma * W)
+        return S
+
 
 
 #%%
@@ -203,16 +220,16 @@ if __name__ == "__main__":
         "strike_price": 120,
         "maturity": 1,
         "sigma": 0.2,
-        "r": 0.05,
-        "mu": 0.1,
+        "r": 0.02,
+        "mu": 0.07,
         "dividend": 0.0,
         "N": 252,
         "M": 1000,
     }
     option = EuropeanOptions(**params)
-    pnl = option.delta_hedging("call")
-    plt.plot(np.mean(pnl, axis=1))
-    plt.title("Delta Hedging PnL")
+    #pnl = option.delta_hedging("call")
+    #plt.plot(np.mean(pnl, axis=1))
+    #plt.title("Delta Hedging PnL")
     #print(f"Call price: {option.price_call():.2f}")
 
     #market_price = 10.50
@@ -225,3 +242,6 @@ if __name__ == "__main__":
     #print(option.price_call())
 
 # %%
+#todo:
+# - rebalemcement frequency due to cost of transaction
+# - here we do static hedging our rebalemcement is done at the end of the day

@@ -26,7 +26,7 @@ class ModelCalibrator:
         self.dividend_yield = None
         self.historical_volatility = None
         self.expiry_dates = None
-        self.mu = None
+
     def fetch_market_data(self, period="1y"):
         """
         Fetch market data for the specified ticker
@@ -41,7 +41,7 @@ class ModelCalibrator:
 
         log_returns = np.log(self.stock_data["Close"] / self.stock_data["Close"].shift(1))
         self.historical_volatility = log_returns.std() * np.sqrt(252)  # Annualization
-        self.mu = np.mean(log_returns) * 252
+
         self.dividend_yield = stock.info.get("dividendYield", 0.0)
 
         self.risk_free_rate = 0.03
@@ -120,10 +120,10 @@ class ModelCalibrator:
 
         model = EuropeanOptions(
             S0=self.spot_price,
-            strike_price=self.spot_price,  # Will be updated
+            strike_price=100,  # Will be updated
             maturity=maturity,
             sigma=self.historical_volatility,
-            mu=self.mu,
+            mu=np.mean(np.log(self.stock_data["Close"] / self.stock_data["Close"].shift(1))) * 252,  # Annualized drift
             r=self.risk_free_rate,
             dividend=self.dividend_yield,
         )
@@ -200,22 +200,22 @@ class ModelCalibrator:
 
         def objective_function(params):
             sigma = params[0]
-            
+
+            model = EuropeanOptions(
+                S0=self.spot_price,
+                strike_price=100,
+                maturity=maturity,
+                sigma=sigma,
+                r=self.risk_free_rate,
+                dividend=self.dividend_yield,
+            )
+
             total_error = 0
             for _, row in options_df.iterrows():
                 strike = row["strike"]
                 market_price = row["lastPrice"]
 
-                # Créer un nouveau modèle avec le strike price correct
-                model = EuropeanOptions(
-                    S0=self.spot_price,
-                    strike_price=strike,  # Utiliser le strike du marché
-                    maturity=maturity,
-                    mu=self.mu,
-                    sigma=sigma,
-                    r=self.risk_free_rate,
-                    dividend=self.dividend_yield,
-                )
+                model.K = strike
 
                 if option_type == "call":
                     model_price = model.price_call()
@@ -231,7 +231,7 @@ class ModelCalibrator:
         initial_params = [self.historical_volatility]
         bounds = [(0.01, 2.0)]  # Constraints on volatility
 
-        result = minimize(objective_function, initial_params, bounds=bounds, method="L-BFGS-B") # we want to get the volatility at ATM
+        result = minimize(objective_function, initial_params, bounds=bounds, method="L-BFGS-B")
 
         if result.success:
             calibrated_sigma = result.x[0]
@@ -272,7 +272,6 @@ if __name__ == "__main__":
                 strike_price=params["S0"],  # ATM option
                 maturity=params["T"],
                 sigma=params["sigma"],
-                mu=calibrator.mu,
                 r=params["r"],
                 dividend=params["q"],
             )

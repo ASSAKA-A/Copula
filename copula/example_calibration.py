@@ -3,67 +3,67 @@ from calibration import ModelCalibrator
 
 def main():
     """
-    Exemple d'utilisation du calibrateur de modèle pour un ticker donné
+    Example of using the model calibrator for a given ticker
     """
-    # Demande du ticker à l'utilisateur
-    ticker = input("Entrez le symbole de l'action (ex: AAPL, MSFT, GOOGL): ").upper()
+    # Ask user for ticker symbol
+    ticker = input("Enter the stock symbol (e.g., AAPL, MSFT, GOOGL): ").upper()
 
-    # Initialisation du calibrateur
-    print(f"Calibration du modèle pour {ticker}...")
+    # Initialize calibrator
+    print(f"Calibrating model for {ticker}...")
     calibrator = ModelCalibrator(ticker)
 
-    # Récupération des données de marché
-    print("Récupération des données de marché...")
+    # Fetch market data
+    print("Fetching market data...")
     calibrator.fetch_market_data()
 
-    # Vérification des dates d'expiration disponibles
+    # Check available expiry dates
     if not calibrator.expiry_dates or len(calibrator.expiry_dates) == 0:
-        print("Aucune date d'expiration disponible pour ce ticker.")
+        print("No expiry dates available for this ticker.")
         return
 
-    # Affichage des dates d'expiration disponibles
-    print("\nDates d'expiration disponibles:")
+    # Display available expiry dates
+    print("\nAvailable expiry dates:")
     for i, date in enumerate(calibrator.expiry_dates):
         print(f"{i+1}. {date}")
 
-    # Sélection de la date d'expiration
+    # Select expiry date
     while True:
         try:
-            choice = int(input("\nSélectionnez une date d'expiration (numéro): "))
+            choice = int(input("\nSelect an expiry date (number): "))
             if 1 <= choice <= len(calibrator.expiry_dates):
                 selected_expiry = calibrator.expiry_dates[choice - 1]
                 break
             else:
-                print("Choix invalide. Veuillez réessayer.")
+                print("Invalid choice. Please try again.")
         except ValueError:
-            print("Veuillez entrer un nombre.")
+            print("Please enter a number.")
 
-    # Sélection du type d'option
+    # Select option type
     while True:
-        option_type = input("\nType d'option (call/put): ").lower()
+        option_type = input("\nOption type (call/put): ").lower()
         if option_type in ["call", "put"]:
             break
         else:
-            print("Type d'option invalide. Veuillez entrer 'call' ou 'put'.")
+            print("Invalid option type. Please enter 'call' or 'put'.")
 
-    # Traçage du smile de volatilité
-    print(f"\nTraçage du smile de volatilité pour {ticker} - {selected_expiry} ({option_type})...")
+    # Plot volatility smile
+    print(f"\nPlotting volatility smile for {ticker} - {selected_expiry} ({option_type})...")
     calibrator.plot_volatility_smile(selected_expiry, option_type)
 
-    # Calibration du modèle
-    print(f"\nCalibration du modèle pour {ticker} - {selected_expiry} ({option_type})...")
+    # Calibrate model
+    print(f"\nCalibrating model for {ticker} - {selected_expiry} ({option_type})...")
     params = calibrator.calibrate_model(selected_expiry, option_type)
 
     if params:
-        print("\nParamètres calibrés:")
-        print(f"Prix spot (S0): {params['S0']:.2f}")
-        print(f"Volatilité (sigma): {params['sigma']:.2%}")
-        print(f"Taux sans risque (r): {params['r']:.2%}")
-        print(f"Taux de dividende (q): {params['q']:.2%}")
-        print(f"Temps jusqu'à l'échéance (T): {params['T']:.4f} années")
+        print("\nCalibrated parameters:")
+        print(f"Spot price (S0): {params['S0']:.2f}")
+        print(f"Volatility (sigma): {params['sigma']:.2%}")
+        print(f"Risk-free rate (r): {params['r']:.2%}")
+        print(f"Dividend rate (q): {params['q']:.2%}")
+        print(f"Time to expiry (T): {params['T']:.4f} years")
     else:
         print(
-            "\nLa calibration a échoué. Essayez avec une autre date d'expiration ou un autre type d'option."
+            "\nCalibration failed. Try with a different expiry date or option type."
         )
 
 

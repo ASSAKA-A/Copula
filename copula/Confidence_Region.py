@@ -10,6 +10,19 @@ def norme(beta_hat, sigma, x):
 
 
 def confidence_region_gauss(beta_hat, sigma_app, ecart_type, size, alpha=0.05):
+    """
+    Compute the confidence region for a Gaussian distribution.
+
+    Args:
+        beta_hat: The estimated coefficients of the model.
+        sigma_app: The estimated covariance matrix of the model.
+        ecart_type: The standard deviation of the model.
+        size: The number of samples to generate.
+        alpha: The significance level of the confidence region.
+
+    Returns:
+        The confidence region for the model.
+    """
     p = len(beta_hat)
     sigma = np.linalg.inv(sigma_app)
     samples = ss.multivariate_normal.rvs(cov=sigma, mean=beta_hat, size=size)
@@ -23,6 +36,19 @@ def confidence_region_gauss(beta_hat, sigma_app, ecart_type, size, alpha=0.05):
 
 
 def confidence_region_t(beta_hat, sigma_app, target, size, alpha=0.05):
+    """
+    Compute the confidence region for a t-distribution.
+
+    Args:
+        beta_hat: The estimated coefficients of the model.
+        sigma_app: The estimated covariance matrix of the model.
+        target: The target value of the model.
+        size: The number of samples to generate.
+        alpha: The significance level of the confidence region.
+
+    Returns:
+        The confidence region for the model.
+    """
     p = len(beta_hat)
     sigma = np.linalg.inv(sigma_app)
     samples = ss.multivariate_normal.rvs(cov=sigma, mean=beta_hat, size=size)
